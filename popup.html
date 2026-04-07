@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    
+    body { width: 350px; background: #1a103d; color: #ffffff; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 15px; }
+    .container { background: #2d1b5e; padding: 25px; border-radius: 20px; border: 1px solid #4a2d96; box-shadow: 0 12px 24px rgba(0,0,0,0.4); }
+    
+    h2 { text-align: center; margin: 0 0 20px; font-size: 22px; font-weight: 700; color: #fff; }
+    
+   
+    .stat-card { background: #1a103d; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 20px; border: 1px solid #6b46c1; }
+    #total { font-size: 50px; font-weight: 800; display: block; line-height: 1; }
+    .label { font-size: 11px; color: #b794f4; text-transform: uppercase; margin-top: 8px; font-weight: 600; letter-spacing: 1px; }
+
+    
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button { padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    
+    #scanBtn { background: #6b46c1; color: #fff; grid-column: span 2; margin-bottom: 5px; font-size: 16px; }
+    #scanBtn:hover { background: #7c3aed; }
+    
+    #downloadBtn { background: #ffffff; color: #1a103d; }
+    #clearBtn { background: #ef4444; color: #fff; }
+    #clearBtn:hover { background: #dc2626; }
+
+   
+    .scanning-text { font-size: 14px; color: #fbbf24; font-weight: 600; display: none; margin-bottom: 10px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    
+    #list { display: none; } 
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Email Grabber PRO</h2>
+    
+    <div class="stat-card">
+      <div id="status" class="scanning-text">Visiting Websites...</div>
+      <span id="total">0</span>
+      <span class="label" id="label">Leads Collected</span>
+    </div>
+
+    <div class="btn-group">
+      <button id="scanBtn">Start Scrapping Now</button>
+      <button id="downloadBtn"> Download Emails</button>
+      <button id="clearBtn">Delete All</button>
+    </div>
+
+    <ul id="list"></ul>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
