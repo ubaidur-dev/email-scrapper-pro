@@ -1,101 +1,144 @@
-const BLACKLIST = ["youremail", "ubaid.dev@gmail.com", "ubaidur.dev@gmail.com"];
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await scanCurrentPage();
+const DUMMY_PATTERNS = [
+    "example", "test", "domain", "your.email", "youremail", "any-name", 
+    "not-a-real-email", "noreply", "sentry", "u003e", "&gt;", "placeholder"
+];
+
+let USER_EMAIL = "";
+
+chrome.identity.getProfileUserInfo((userInfo) => {
+    if (userInfo.email) USER_EMAIL = userInfo.email.toLowerCase();
 });
 
-async function scanCurrentPage() {
+document.addEventListener('DOMContentLoaded', async () => {
+    syncCounter();
+    setTimeout(async () => {
+        await startDeepScan();
+    }, 500);
+});
+
+async function startDeepScan() {
     try {
         const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!currentTab || !currentTab.id || currentTab.url.startsWith('chrome://')) return;
 
-        const extraction = await chrome.scripting.executeScript({
+        const currentDomain = new URL(currentTab.url).hostname;
+        const currentBaseUrl = new URL(currentTab.url).origin;
+
+        updateSiteCounter(currentDomain);
+
+        const immediateEmails = await executeScanOnTab(currentTab.id);
+        await filterAndStore(immediateEmails);
+
+        chrome.scripting.executeScript({
             target: { tabId: currentTab.id },
-            func: () => {
-                let allText = "";
-                const elements = document.body.getElementsByTagName('*');
-                
-                for (let i = 0; i < elements.length; i++) {
-                    const el = elements[i];
-                    if (el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE') {
-                        if (el.innerText) {
-                            allText += " " + el.innerText;
-                        }
-                        if (el.innerHTML) {
-                            allText += " " + el.innerHTML;
-                        }
-                    }
-                }
-                const regex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}/g;
-                return allText.match(regex) || [];
+            func: (baseUrl) => {
+                const links = Array.from(document.querySelectorAll('a[href]'))
+                    .map(a => a.href)
+                    .filter(href => href.includes(baseUrl) && 
+                        (href.toLowerCase().includes('contact') || 
+                         href.toLowerCase().includes('about') || 
+                         href.toLowerCase().includes('reach')));
+                return [...new Set(links)];
+            },
+            args: [currentBaseUrl]
+        }, async (results) => {
+            const deepLinks = results[0]?.result || [];
+            for (const link of deepLinks) {
+                try {
+                    const response = await fetch(link);
+                    const html = await response.text();
+                    const regex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,20}/g;
+                    const found = html.match(regex) || [];
+                    if (found.length > 0) await filterAndStore(found);
+                } catch (err) { console.error("Deep Scan Error:", err); }
             }
         });
 
-        const rawMails = extraction[0]?.result || [];
-        await filterAndStore(rawMails);
-    } catch (e) {
-        console.error("Scan Error:", e);
-    }
+    } catch (e) { console.error("Infratel Engine Error:", e); }
+}
+
+async function executeScanOnTab(tabId) {
+    const results = await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: () => {
+            const source = document.documentElement.outerHTML || "";
+            const visible = document.body ? document.body.innerText : "";
+            const combined = source + " " + visible;
+            
+            const regex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,20}/g;
+            let found = combined.match(regex) || [];
+            
+            const mailtos = Array.from(document.querySelectorAll('a[href^="mailto:"]'))
+                                 .map(a => a.href.replace('mailto:', '').split('?')[0]);
+            
+            return [...new Set([...found, ...mailtos])];
+        }
+    });
+    return results[0]?.result || [];
 }
 
 async function filterAndStore(newList) {
-    return new Promise((resolve) => {
-        chrome.storage.local.get(['savedEmails'], (data) => {
-            const current = data.savedEmails || [];
-
-            const cleanList = newList.filter(email => {
-                const e = email.toLowerCase().trim();
-
-                if (!e.includes('@') || !e.includes('.')) return false;
-
-                const isBad = BLACKLIST.some(word => e.includes(word));
-                const junkPatterns = ["2x", "thumbnail", "featured", "icon", "logo", "btn", "button", "half-cut", "responsive", "png", "jpg", "jpeg", "gif", "svg", "webp", "css", "js"];
-                const hasJunk = junkPatterns.some(word => e.includes(word));
-                const isFile = e.match(/\.(png|jpg|jpeg|gif|svg|webp|css|js|ico|pdf|xml|json|mp4|woff|ttf)$/i);
-                
-                const isDummy = e.match(/(example|test|domain|yourdomain|lipsum|noreply|admin|gravatar|w3\.org)/i);
-                const isSentryTracker = /^[a-f0-9]{32}@/i.test(e) || e.includes("sentry");
-
-                const domainPart = e.split('@')[1] || '';
-                const domainIsFile = /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(domainPart);
-
-                
-                return !isBad && !hasJunk && !isFile && !isDummy && !isSentryTracker && !domainIsFile && e.length > 8;
-            }).map(e => e.toLowerCase());
-
-            const merged = [...new Set([...current, ...cleanList])];
+    chrome.storage.local.get(['savedEmails'], (data) => {
+        const currentEmails = data.savedEmails || [];
+        
+        const cleanList = newList.map(email => {
+            return email.toLowerCase().replace(/^u003e|^&gt;|^gt;/, '').trim();
+        }).filter(e => {
+            if (!e.includes('@') || e.length < 8) return false;
             
-            chrome.storage.local.set({ 'savedEmails': merged }, () => {
-                syncCounter();
-                resolve();
-            });
+            const isDummy = DUMMY_PATTERNS.some(p => e.includes(p));
+            if (isDummy) return false;
+
+            if (USER_EMAIL && e === USER_EMAIL) return false;
+
+            const junkExts = ["png", "jpg", "jpeg", "gif", "svg", "webp", "css", "js"];
+            const isFile = junkExts.some(ext => e.endsWith(ext));
+            if (isFile) return false;
+
+            
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
         });
+
+        const mergedEmails = [...new Set([...currentEmails, ...cleanList])];
+        chrome.storage.local.set({ 'savedEmails': mergedEmails }, () => syncCounter());
+    });
+}
+
+function updateSiteCounter(domain) {
+    chrome.storage.local.get(['scannedSites'], (data) => {
+        let currentSites = data.scannedSites || [];
+        if (!currentSites.includes(domain)) {
+            currentSites.push(domain);
+            chrome.storage.local.set({ 'scannedSites': currentSites }, () => syncCounter());
+        }
     });
 }
 
 function syncCounter() {
-    chrome.storage.local.get(['savedEmails'], (res) => {
-        document.getElementById('total').innerText = (res.savedEmails || []).length;
+    chrome.storage.local.get(['savedEmails', 'scannedSites'], (res) => {
+        const leads = document.getElementById('total');
+        const sites = document.getElementById('siteCount');
+        if (leads) leads.innerText = (res.savedEmails || []).length;
+        if (sites) sites.innerText = (res.scannedSites || []).length;
     });
 }
 
-document.getElementById('downloadBtn').addEventListener('click', () => {
+
+document.getElementById('downloadBtn').onclick = () => {
     chrome.storage.local.get(['savedEmails'], (res) => {
         const emails = res.savedEmails || [];
-        if (!emails.length) return alert("Nothing found.");
-        
-        const text = emails.join('\n');
-        const blob = new Blob([text], { type: 'text/plain' });
+        if (!emails.length) return alert("Let's get the leads first!");
+        const blob = new Blob([emails.join('\n')], { type: 'text/plain' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `leads_export.txt`;
+        link.download = `LeadLoom_Business_Leads_${new Date().toISOString().split('T')[0]}.txt`;
         link.click();
     });
-});
+};
 
-document.getElementById('clearBtn').addEventListener('click', () => {
-    if (confirm("Delete all leads?")) {
-        chrome.storage.local.set({ 'savedEmails': [] }, () => {
-            document.getElementById('total').innerText = "0";
-        });
+document.getElementById('clearBtn').onclick = () => {
+    if (confirm("Reset all data?")) {
+        chrome.storage.local.set({ 'savedEmails': [], 'scannedSites': [] }, () => syncCounter());
     }
-});
+};
