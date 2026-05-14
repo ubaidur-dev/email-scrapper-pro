@@ -1,25 +1,26 @@
-# Email-Grabber-PRO 
+# LeadLoom Business Email Extractor 
 
 ### Project Overview
-Email Grabber PRO is a high-performance Chrome Extension designed to automate the process of finding and saving business leads. Instead of manually checking every page of a website, this tool does the heavy lifting for you scanning multiple pages and extracting contact information instantly. 
+LeadLoom Business Email Extractor is a simple and fast Chrome Extension that automates the process of finding business leads. It is designed to save you from manually checking every page of a website. This tool scans the site and collects contact emails for you instantly.
 
 ### Key Features
-* **Deep Scanning Technology:** Automatically visits and scans all links found on a webpage to find hidden email addresses.
-* **Smart Data Filtering:** Uses intelligent logic to remove junk data and technical files, ensuring you only get high-quality business leads.
-* **Persistent Storage:** All collected leads are securely saved within the extension's local storage, so your data remains safe even if you close the browser.
-* **One-Click Export:** Instantly download your entire lead list into a clean .txt file ready for your CRM or outreach campaigns.
-* **Pro UI/UX:** Features a modern "Cyber-Dark" dashboard with a live scanning indicator for a premium user experience.
+* **Smart Deep Scan:** The tool doesn't just look at one page. It automatically checks important links like "Contact Us" or "About" to find emails that are hidden deeper in the website.
+* **Automatic Cleanup:** It has smart filters that remove useless or "fake" emails (like test@ or image-related links) so you only get high-quality business leads.
+* **Personal Email Filter:** It intelligently ignores your own email address during the scan so your list stays clean and focused on external leads.
+* **Safe Local Storage:** All the leads you collect are saved inside the extension. Even if you close your browser or restart your computer, your data stays safe.
+* **One-Click Export:** You can download all your collected leads into a clean .txt file with just one click, ready to be used for your outreach.
+* **Modern Interface:** Features a dark-themed, easy-to-use dashboard where you can see live updates of how many leads and sites have been scanned.
 
 ### Installation
-* **Download** or **Clone** this repository.
-* Open your Chrome browser and go to chrome://extensions/.
-* Enable **"Developer mode"** in the top right corner.
-* Click **"Load unpacked"** and select the folder where you saved this project.
-* Pin the extension and **start collecting leads!**
+* **Download:** Download the project folder to your computer.
+* **Extensions Page:** Open Google Chrome and go to chrome://extensions/.
+* **Developer Mode:** Turn on the **"Developer mode"** switch in the top-right corner.
+* **Load Extension:** Click the **"Load unpacked"** button and select the folder where you saved the code.
+* **Start Using:** Pin the extension to your bar, visit a business website, and start collecting leads!
 
 ### Support & Consultation
-* **Issue Tracking:** If you find any bugs or have feature requests, please open an issue.
-* **Professional Consultation:** I am available for architectural discussions or technical advice regarding this project completely free of cost.
+* **Feedback:** If you find any bugs or have new ideas, feel free to open an issue in the repository.
+* **Free Help:** I am available for any technical advice or help regarding this project **completely free of cost**.
 
 
 
